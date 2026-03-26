@@ -34,10 +34,10 @@ function assertInjectableUrl(url) {
   }
 }
 
-async function ensureCaptureScript(tabId) {
+async function ensureCaptureScript(tabId, allFrames) {
   try {
     await chrome.scripting.executeScript({
-      target: { tabId, allFrames: true },
+      target: { tabId, allFrames },
       files: [CAPTURE_SCRIPT]
     });
   } catch (_e) {
@@ -65,7 +65,7 @@ async function runCapture(mode) {
     }
 
     assertInjectableUrl(tab.url);
-    await ensureCaptureScript(tab.id);
+    await ensureCaptureScript(tab.id, mode !== "full");
 
     const response = await chrome.tabs.sendMessage(tab.id, {
       type: "START_CAPTURE",

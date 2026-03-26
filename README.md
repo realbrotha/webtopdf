@@ -1,8 +1,8 @@
 # Web To PDF
 
-Chrome 확장 프로그램: 현재 보이는 영역, 사용자가 지정한 영역, 또는 선택한 요소를 PDF로 저장합니다.
+Chrome 확장 프로그램: 현재 보이는 페이지, 선택한 요소는 **텍스트·이미지가 유지되는 네이티브 PDF**로 저장하고, 드래그로 고른 **영역은 화면 스크린샷을 잘라 이미지 PDF** 한 장으로 저장합니다.
 
-Chrome extension: save the visible viewport, a selected region, or a selected element as PDF.
+Chrome extension: **native PDF** (with selectable text and proper images) for the **visible page** and **element** modes; **raster/image PDF** (screenshot crop) for **drag-to-select region** capture, matching a snipping-tool style workflow.
 
 ---
 
@@ -22,13 +22,20 @@ Chrome extension: save the visible viewport, a selected region, or a selected el
 | 권한 | 사용 이유 |
 |------|-----------|
 | `activeTab` | 사용자가 확장 아이콘·팝업으로 동작을 시작할 때, 현재 탭과 안전하게 연동하기 위해 사용합니다. |
-| `tabs` | 활성 탭을 찾고(`tabs.query`), 캡처 스크립트와 메시지를 주고받으며(`sendMessage`), 화면 캡처 시 창 정보가 필요할 때(`captureVisibleTab`) 사용합니다. |
-| `scripting` | 팝업에서 `content/capture.js`를 페이지에 주입(`executeScript`)해 캡처 UI·스티칭 로직을 실행합니다. |
+| `tabs` | 활성 탭을 찾고(`tabs.query`), 콘텐츠 스크립트와 메시지를 주고받으며(`sendMessage`), **영역 캡처** 시 뷰포트 스크린샷을 찍을 때 창 정보가 필요한 `captureVisibleTab`에 사용합니다. |
+| `scripting` | 팝업에서 `content/capture.js`를 페이지에 주입(`executeScript`)해 영역 선택 UI·Element 선택·캡처 로직을 실행합니다. |
 | `downloads` | 생성한 PDF를 `data:` URL로 사용자가 저장할 수 있게 다운로드 API로 저장 대화상자를 띄웁니다. |
-| `host_permissions` (`<all_urls>`) | 임의의 웹사이트 탭에서 위 스크립트 주입·캡처가 동작하도록 호스트 범위를 허용합니다. |
-| 콘텐츠 스크립트 `all_frames: true` | iframe이 있는 페이지에서도 동일한 방식으로 캡처할 수 있게 모든 프레임에 스크립트를 로드합니다. |
+| `debugger` | **현재 페이지·Element PDF**를 Chrome의 인쇄 엔진과 동일하게 **텍스트·벡터·이미지가 살아 있는 PDF**로 만들기 위해 사용합니다. 백그라운드에서 Chrome DevTools Protocol의 **`Page.printToPDF`** 를 호출하려면 `chrome.debugger` 권한이 필요합니다. 인쇄가 잠시 동안만 연결된 뒤 **곧바로 해제**되며, 다른 사이트로 데이터를 보내지 않습니다. 실행 중 탭 상단에 *「확장 프로그램이 이 브라우저를 디버깅하고 있습니다」* 배너가 잠깐 보일 수 있습니다. |
+| (호스트) | **`host_permissions` / 선언형 콘텐츠 스크립트 없음.** 사용자가 팝업에서 동작을 시작할 때만 `scripting`으로 `capture.js`를 해당 활성 탭(필요 시 iframe)에 주입합니다. |
+
+**모드별 PDF 종류**
+
+- **현재 페이지 / Element**: 네이티브 PDF (`debugger` + `printToPDF`). PDF 뷰어에서 텍스트 선택·복사가 가능한 경우가 많습니다.
+- **영역 캡처**: `captureVisibleTab` + Canvas 크롭 후 **한 장짜리 이미지(JPEG) PDF**. Windows 캡처 도구처럼 보이는 그대로를 담습니다(텍스트 레이어 없음).
 
 **데이터 수집**: 이 확장은 서버로 페이지 내용을 보내지 않으며, 캡처·PDF 생성은 사용자 기기 내에서 처리됩니다.
+
+**개인정보처리방침**: [PRIVACY.md](PRIVACY.md) (Chrome 웹스토어 제출 시 공개 URL로는 저장소의 해당 파일 링크를 사용할 수 있습니다.)
 
 ### 저작권 및 라이선스
 
@@ -53,13 +60,20 @@ The code in this repository was developed through **vibe coding** with **Cursor*
 | Permission | Why it is needed |
 |------------|------------------|
 | `activeTab` | Lets the extension work with the tab the user is actively using when they open the popup or trigger the action. |
-| `tabs` | Used to find the active tab (`tabs.query`), exchange messages with the capture script (`sendMessage`), and call `captureVisibleTab` with the correct window context. |
-| `scripting` | Injects `content/capture.js` into the page (`executeScript`) so capture and stitching can run in the page context. |
-| `downloads` | Saves the generated PDF via the downloads API (`saveAs` dialog) from a `data:` URL. |
-| `host_permissions` (`<all_urls>`) | Required so the extension can inject and run the capture script on arbitrary websites the user chooses. |
-| Content scripts with `all_frames: true` | Loads the capture script in all frames so capturing works on pages that use iframes. |
+| `tabs` | Used to find the active tab (`tabs.query`), message the content script (`sendMessage`), and supply the correct window when calling **`captureVisibleTab`** for **region** (screenshot) capture. |
+| `scripting` | Injects `content/capture.js` (`executeScript`) for region selection UI, element picking, and capture helpers. |
+| `downloads` | Saves generated PDFs via the downloads API (`saveAs` dialog) from `data:` URLs. |
+| `debugger` | Required for **native PDF** output on **visible page** and **element** modes. The service worker attaches the Chrome DevTools Protocol briefly and calls **`Page.printToPDF`**, which uses the same print pipeline as Chrome—so text stays selectable and images/vector graphics are preserved where the page allows. The debugger session is **attached only for that print**, then **detached**; no page data is sent to external servers. You may see Chrome’s short-lived banner: *“An extension is debugging this browser”*. |
+| (hosts) | **No `host_permissions` or declarative content scripts.** The capture script runs only after the user starts an action from the popup, via `executeScript` on the active tab (and frames when needed). |
+
+**PDF output by mode**
+
+- **Visible page / Element**: Native PDF via `debugger` + `printToPDF`. Text is often selectable in PDF viewers.
+- **Region (drag)**: **Raster/image PDF**—viewport screenshot from `captureVisibleTab`, cropped on a canvas, embedded as a single JPEG page (snipping-tool style; no text layer).
 
 **Data collection**: This extension does not send page content to a remote server; capture and PDF generation run locally on your device.
+
+**Privacy policy**: [PRIVACY.md](PRIVACY.md) (for Chrome Web Store, you may use the public URL to this file in the repository.)
 
 ### Copyright and license
 
