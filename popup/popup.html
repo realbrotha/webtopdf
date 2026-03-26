@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Web To PDF</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #101218;
+        color: #f1f3f8;
+        min-width: 240px;
+      }
+      .wrap { padding: 12px; display: grid; gap: 8px; }
+      h1 { margin: 0 0 4px; font-size: 14px; }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 13px;
+        cursor: pointer;
+        background: #2d74ff;
+        color: #fff;
+      }
+      button:disabled { opacity: 0.6; cursor: default; }
+      .hint { margin: 2px 0 0; font-size: 11px; color: #c4c8d4; }
+      .status { margin: 0; font-size: 12px; min-height: 16px; color: #9cd3ff; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <h1>PDF 캡처</h1>
+      <button id="fullBtn">현재 페이지</button>
+      <button id="regionBtn">영역 캡처</button>
+      <button id="elementBtn">Element 선택</button>
+      <p class="hint">캡처 중에는 이 탭을 유지하세요.</p>
+      <p id="status" class="status"></p>
+    </main>
+    <script src="popup.js" defer></script>
+  </body>
+</html>
